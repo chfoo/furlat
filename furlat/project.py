@@ -2,6 +2,7 @@
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GNU GPL v3. See COPYING.txt for details
 import furlat.job
+import furlat.limit
 import furlat.word
 import logging
 import os
@@ -9,13 +10,15 @@ import queue
 import random
 import string
 import threading
+import time
 
 _logger = logging.getLogger(__name__)
 
 
 class Project(threading.Thread):
-    DEFAULT_JOBS = (furlat.job.GoogleSearch,
-        furlat.job.BingSearch,
+    DEFAULT_JOBS = (
+        # furlat.job.GoogleSearch,
+        # furlat.job.BingSearch,
         furlat.job.YahooSearch,
     )
 
@@ -32,6 +35,7 @@ class Project(threading.Thread):
         self._job_classes = job_classes
         self._job_limiter = furlat.job.JobLimiter()
         self._word_queue = furlat.word.WordQueue(word_list)
+        self._error_limiters = {}
 
     def run(self):
         _logger.info('Project started for ‘{name}’.'.format(
@@ -77,18 +81,29 @@ class Project(threading.Thread):
             except queue.Empty:
                 return
 
+            job_class = job.__class__
+
             self._job_limiter.remove(job.__class__)
+
+            if job_class not in self._error_limiters:
+                self._error_limiters[job_class] = \
+                    furlat.limit.ExponentialLimiter()
 
             try:
                 results = future.result()
                 _logger.info('Job #{} ({}) finished with {} results.'.format(
-                job.job_id, job.__class__.__name__, len(results)))
+                job.job_id, job_class.__name__, len(results)))
 
                 self.job_result_callback(job, results)
+                self._error_limiters[job_class].reset()
             except Exception:
                 _logger.exception('Job #{} ({}) finished with errors'.format(
-                    job.job_id, job.__class__.__name__))
-                # TODO: throttle
+                    job.job_id, job_class.__name__))
+
+                delay_time = self._error_limiters[job_class].increment()
+
+                _logger.debug('Throttle {} seconds'.format(delay_time))
+                time.sleep(delay_time)
 
     def _new_job(self):
         job_classes = list(self._job_classes)
