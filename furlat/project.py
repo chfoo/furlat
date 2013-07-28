@@ -17,8 +17,8 @@ _logger = logging.getLogger(__name__)
 
 class Project(threading.Thread):
     DEFAULT_JOBS = (
-        # furlat.job.GoogleSearch,
-        # furlat.job.BingSearch,
+        furlat.job.GoogleSearch,
+        furlat.job.BingSearch,
         furlat.job.YahooSearch,
     )
 
