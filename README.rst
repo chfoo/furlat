@@ -65,7 +65,7 @@ Testing
 
 The unit tests can be run with ``nosetests``::
 
-    ``nosetests3``
+    nosetests3
 
 
 Roadmap
