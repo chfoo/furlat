@@ -4,6 +4,7 @@
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.wait import WebDriverWait
 import abc
+import furlat.filtering
 import logging
 import re
 import urllib.parse
@@ -37,11 +38,12 @@ class URLPattern(object):
                 yield match.group(1)
 
 
-class BaseSearchEngine(metaclass=abc.ABCMeta):
+class BaseSearchEngine(object, metaclass=abc.ABCMeta):
     def __init__(self, driver, url_pattern, search_keyword):
         self._driver = driver
         self._url_pattern = url_pattern
         self._search_keyword = search_keyword
+        self._html_filter = furlat.filtering.HTMLFilter()
 
     @abc.abstractproperty
     def query_url_template(self):
@@ -85,7 +87,12 @@ class BaseSearchEngine(metaclass=abc.ABCMeta):
 
     def scrape_page(self):
         body_element = self.driver.find_element_by_tag_name('body')
-        text = body_element.get_attribute('innerHTML')
+        body_text = body_element.get_attribute('innerHTML')
+
+        self._html_filter.reset()
+        self._html_filter.feed(body_text)
+
+        text = self._html_filter.get_text()
 
         return list(self.url_pattern.scrape(text))
 
