@@ -148,7 +148,7 @@ class Bing(BaseSearchEngine):
 
     @property
     def site_search_operator(self):
-        return '{site}'
+        return '"{site}"'
 
     def click_next_page(self):
         try:
@@ -171,7 +171,7 @@ class Yahoo(BaseSearchEngine):
 
     @property
     def site_search_operator(self):
-        return '{site}'
+        return '"{site}"'
 
     def click_next_page(self):
         try:
