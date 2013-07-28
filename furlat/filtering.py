@@ -1,4 +1,5 @@
 '''"Garbage" removal routines'''
+import html.entities
 import html.parser
 import io
 

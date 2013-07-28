@@ -8,7 +8,7 @@ class TestFilter(unittest.TestCase):
         t = '''<div class="result">
 Lorem ipsum <b>short.url</b>/abcdefg lorem ipsum dogs cats.
 </div> <a href="http://short.url/asd34">puppies</a>
-wolf. <span><b>short</b>.<b>url</b>/ajoier</span><div>kitten</div>
+wolf. <span><b>short</b>.<b>url</b>/ajoier</span><div>kitten</div> &nbsp;
 '''
         f = filtering.HTMLFilter()
         f.feed(t)
