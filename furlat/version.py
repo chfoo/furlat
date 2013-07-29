@@ -2,6 +2,6 @@
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GNU GPL v3. See COPYING.txt for details
 
-__version__ = '0.2'
+__version__ = '0.4'
 
 __all__ = ('__version__',)
