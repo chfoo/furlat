@@ -33,6 +33,9 @@ Use the ``--help`` to see details about arguments.
 
 Results are currently stored into a text file. For example, if you run bit.ly, a folder called ``bitly`` will be created with the text files inside the folder. The text files contain the discovered URLs.
 
+Infinitely running commands check if a file called ``STOP`` is present. If the modified file is newly modified or created, the command will stop gracefully.
+
+
 Commands
 --------
 

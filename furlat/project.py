@@ -6,11 +6,13 @@ import furlat.limit
 import furlat.word
 import logging
 import os
+import os.path
 import queue
 import random
 import string
 import threading
 import time
+
 
 _logger = logging.getLogger(__name__)
 
@@ -36,6 +38,7 @@ class Project(threading.Thread):
         self._job_limiter = furlat.job.JobLimiter()
         self._word_queue = furlat.word.WordQueue(word_list)
         self._error_limiters = {}
+        self._start_time = time.time()
 
         for job_class in self._job_classes:
             self._error_limiters[job_class] = \
@@ -50,6 +53,8 @@ class Project(threading.Thread):
         job = None
 
         while self._running:
+            self._check_stop_file()
+
             if not job:
                 job = self._new_job()
 
@@ -131,3 +136,8 @@ class Project(threading.Thread):
             for url in result:
                 f.write(url.encode())
                 f.write(b'\n')
+
+    def _check_stop_file(self):
+        if os.path.exists('STOP') \
+        and os.path.getmtime('STOP') > self._start_time:
+            self.stop()

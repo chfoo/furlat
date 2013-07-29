@@ -7,7 +7,9 @@ import time
 
 
 class RateLimiter(object):
-    def __init__(self, average_rate=1 / 5.0):
+    FIVE_PER_MINUTE = 5 / 60.0
+
+    def __init__(self, average_rate=FIVE_PER_MINUTE):
         super(RateLimiter, self).__init__()
         self._average_rate = average_rate
 

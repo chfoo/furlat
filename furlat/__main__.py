@@ -73,16 +73,6 @@ def find_command(args):
 
     project = furlat.project.Project(args.name, word_list)
 
-    def signal_handler(signal_number, stack_frame):
-        print('Caught signal.', file=sys.stderr)
-
-        if project.is_running:
-            print('Stopping project.', file=sys.stderr)
-            project.stop()
-        else:
-            sys.exit('Ungracefully exiting.')
-
-    signal.signal(signal.SIGINT, signal_handler)
     project.start()
     project.join()
 
