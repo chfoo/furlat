@@ -223,54 +223,74 @@ class WebDriverCache(object):
 
 class SearchEngineJob(BaseJob):
     web_driver_cache = WebDriverCache()
+    RESULT_COUNT_DEQUE_SIZE = 3
+
+    def __init__(self, *args, **kwargs):
+        super(SearchEngineJob, self).__init__(*args, **kwargs)
+        self._urls = []
+        self._result_count_deque = collections.deque(
+            maxlen=self.RESULT_COUNT_DEQUE_SIZE)
+        self._driver = self.web_driver_cache.get(selenium.webdriver.Firefox,
+            self.search_engine_class)
+        search_engine_class = self.search_engine_class
+        self._search_engine = search_engine_class(self._driver,
+            self._url_pattern, self._search_keyword)
+        self._rate_limiter = furlat.limit.RateLimiter()
 
     @abc.abstractproperty
     def search_engine_class(self):
         pass
 
     def run(self):
-        driver = self.web_driver_cache.get(selenium.webdriver.Firefox,
-            self.search_engine_class)
+        _logger.debug('{} Search domain {} {}'.format(
+            self._search_engine_class.__name__,
+            self._url_pattern.domain_name,
+            self._search_keyword))
 
-        try:
-            search_engine_class = self.search_engine_class
-            search_engine = search_engine_class(driver, self._url_pattern,
-                self._search_keyword)
-            rate_limiter = furlat.limit.RateLimiter()
-            urls = []
+        while True:
+            found_urls = self._search_engine.scrape_page()
 
-            _logger.debug('{} Search domain {} {}'.format(
-                search_engine_class.__name__, self._url_pattern.domain_name,
-                self._search_keyword))
+            _logger.debug('Found {} urls'.format(len(found_urls)))
+            self._add_page_results(found_urls)
 
-            _logger.debug('Loading first page')
-            search_engine.load_first_page()
+            if not self._is_continue_ok():
+                break
 
-            while True:
-                found_urls = search_engine.scrape_page()
+            if not self._load_next_page():
+                break
 
-                _logger.debug('Found {} urls'.format(len(found_urls)))
-                urls.extend(found_urls)
-
-                if search_engine.click_next_page():
-                    search_engine.wait_for_page_load()
-
-                    delay_time = rate_limiter.delay_time()
-
-                    _logger.debug('Sleep {} seconds'.format(delay_time))
-                    time.sleep(delay_time)
-                else:
-                    break
-
-        finally:
-            self.web_driver_cache.clear(selenium.webdriver.Firefox,
-                self.search_engine_class)
-
-        urls = list(sorted(frozenset(urls)))
+        urls = list(sorted(frozenset(self._urls)))
 
         _logger.debug('Job finished. Found total {} URLs'.format(len(urls)))
 
         return urls
+
+    def _load_first_page(self):
+        _logger.debug('Loading first page')
+        self._search_engine.load_first_page()
+
+    def _load_next_page(self):
+        if self._search_engine.click_next_page():
+            self._search_engine.wait_for_page_load()
+
+            delay_time = self._rate_limiter.delay_time()
+
+            _logger.debug('Sleep {} seconds'.format(delay_time))
+            time.sleep(delay_time)
+            return True
+        else:
+            return False
+
+    def _add_page_results(self, urls):
+        self._urls.extend(urls)
+        self._result_count_deque.append(len(urls))
+
+    def _is_continue_ok(self):
+        if len(self._result_count_deque) >= self.RESULT_COUNT_DEQUE_SIZE \
+        and sum(self._result_count_deque) == 0:
+            return False
+
+        return True
 
 
 class TestSearchEngineSearch(SearchEngineJob):
