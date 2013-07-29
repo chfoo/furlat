@@ -3,10 +3,12 @@
 # Licensed under GNU GPL v3. See COPYING.txt for details
 import random
 import threading
+import time
 
 
 class RateLimiter(object):
     def __init__(self, average_rate=1 / 5.0):
+        super(RateLimiter, self).__init__()
         self._average_rate = average_rate
 
     def delay_time(self):
@@ -15,9 +17,10 @@ class RateLimiter(object):
 
 class ExponentialLimiter(object):
     def __init__(self, max_time=3600.0):
+        super(ExponentialLimiter, self).__init__()
         self._time = 1.0
         self._max_time = max_time
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def increment(self):
         with self._lock:
@@ -30,3 +33,25 @@ class ExponentialLimiter(object):
     def reset(self):
         with self._lock:
             self._time = 1.0
+
+
+class AbsoluteExponentialLimiter(ExponentialLimiter):
+    def __init__(self, max_time=3600.0):
+        super(AbsoluteExponentialLimiter, self).__init__(max_time=max_time)
+        self._abs_time = 0.0
+
+    def increment(self):
+        with self._lock:
+            self._abs_time = time.time()
+
+            super(AbsoluteExponentialLimiter, self).increment()
+
+        return self._time + self._abs_time
+
+    def reset(self):
+        with self._lock:
+            self._abs_time = 0.0
+            super(AbsoluteExponentialLimiter, self).reset()
+
+    def time(self):
+        return self._time + self._abs_time

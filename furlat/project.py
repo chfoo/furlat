@@ -37,6 +37,10 @@ class Project(threading.Thread):
         self._word_queue = furlat.word.WordQueue(word_list)
         self._error_limiters = {}
 
+        for job_class in self._job_classes:
+            self._error_limiters[job_class] = \
+                furlat.limit.AbsoluteExponentialLimiter()
+
     def run(self):
         _logger.info('Project started for ‘{name}’.'.format(
             name=self._url_pattern.domain_name))
@@ -63,6 +67,7 @@ class Project(threading.Thread):
         self._job_runner.stop()
         self._job_runner.join()
         self._accept_job_future()
+        furlat.job.SearchEngineJob.web_driver_cache.clear_all()
 
     def stop(self):
         _logger.debug('Stopping job runner.')
@@ -85,10 +90,6 @@ class Project(threading.Thread):
 
             self._job_limiter.remove(job.__class__)
 
-            if job_class not in self._error_limiters:
-                self._error_limiters[job_class] = \
-                    furlat.limit.ExponentialLimiter()
-
             try:
                 results = future.result()
                 _logger.info('Job #{} ({}) finished with {} results.'.format(
@@ -100,10 +101,7 @@ class Project(threading.Thread):
                 _logger.exception('Job #{} ({}) finished with errors'.format(
                     job.job_id, job_class.__name__))
 
-                delay_time = self._error_limiters[job_class].increment()
-
-                _logger.debug('Throttle {} seconds'.format(delay_time))
-                time.sleep(delay_time)
+                self._error_limiters[job_class].increment()
 
     def _new_job(self):
         job_classes = list(self._job_classes)
@@ -111,7 +109,8 @@ class Project(threading.Thread):
         random.shuffle(job_classes)
 
         for job_class in job_classes:
-            if self._job_limiter.add(job_class):
+            if self._error_limiters[job_class].time() < time.time() \
+            and self._job_limiter.add(job_class):
                 keywords = self._get_keywords()
                 return job_class(self._url_pattern, keywords)
 

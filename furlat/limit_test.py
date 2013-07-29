@@ -1,5 +1,6 @@
-import unittest
 from furlat import limit
+import time
+import unittest
 
 
 class TestRateLimiter(unittest.TestCase):
@@ -26,3 +27,11 @@ class TestExponentialLimiter(unittest.TestCase):
         self.assertEqual(6.0, limiter.increment())
         limiter.reset()
         self.assertEqual(1.0, limiter.increment())
+
+
+class TestAbsoluteExponentialLimiter(unittest.TestCase):
+    def test_doubling(self):
+        limiter = limit.AbsoluteExponentialLimiter()
+        self.assertGreater(time.time(), limiter.time())
+        limiter.increment()
+        self.assertLess(time.time(), limiter.time())
