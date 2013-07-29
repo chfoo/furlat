@@ -243,9 +243,11 @@ class SearchEngineJob(BaseJob):
 
     def run(self):
         _logger.debug('{} Search domain {} {}'.format(
-            self._search_engine_class.__name__,
+            self.search_engine_class.__name__,
             self._url_pattern.domain_name,
             self._search_keyword))
+
+        self._load_first_page()
 
         while True:
             found_urls = self._search_engine.scrape_page()
@@ -268,6 +270,11 @@ class SearchEngineJob(BaseJob):
     def _load_first_page(self):
         _logger.debug('Loading first page')
         self._search_engine.load_first_page()
+
+        delay_time = self._rate_limiter.delay_time()
+
+        _logger.debug('Sleep {} seconds'.format(delay_time))
+        time.sleep(delay_time)
 
     def _load_next_page(self):
         if self._search_engine.click_next_page():

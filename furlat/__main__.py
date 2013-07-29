@@ -66,8 +66,6 @@ def find_command(args):
     elif args.verbose:
         logging.basicConfig(level=logging.DEBUG)
 
-    return
-
     if args.wiki_word_list:
         word_list = furlat.word.MediaWikiTitles(args.wiki_word_list)
     else:
