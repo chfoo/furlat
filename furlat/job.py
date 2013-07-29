@@ -26,15 +26,15 @@ class JobRunner(threading.Thread):
         self._num_jobs_running = 0
         self._executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=max_job_count)
-        self._condition = threading.Condition()
         self._queue = queue.Queue(maxsize=max_job_count)
         self._running = True
         self._future_acceptor_queue = future_acceptor_queue
+        self._lock = threading.Lock()
 
     def run(self):
         _logger.debug('Job runner startup.')
 
-        while self._running:
+        while self._running or self._queue.qsize():
             self._run_job()
 
         _logger.debug('Waiting for jobs to finish.')
@@ -42,46 +42,44 @@ class JobRunner(threading.Thread):
         _logger.debug('Queue finished.')
 
     def _run_job(self):
-        with self._condition:
-            while self._running \
-            and self._num_jobs_running >= self._max_job_count:
-                _logger.debug('Too many jobs running. Waiting.')
-                self._condition.wait()
+        if self._num_jobs_running >= self._max_job_count:
+            _logger.debug('Too many jobs running.')
+            time.sleep(0.5)
+            return
 
-            try:
-                job = self._queue.get(timeout=0.5)
-            except queue.Empty:
-                return
+        try:
+            job = self._queue.get(timeout=0.5)
+        except queue.Empty:
+            return
 
-            _logger.debug('Got job {} and submitting to executor'.format(
-                str(job.job_id)))
+        _logger.debug('Got job {} and submitting to executor'.format(
+            str(job.job_id)))
 
-            future = self._executor.submit(job)
+        with self._lock:
             self._num_jobs_running += 1
 
-            def job_done_callback(future):
-                _logger.debug('Job {} finished.'.format(str(job.job_id)))
+        future = self._executor.submit(job)
 
-                with self._condition:
-                    self._num_jobs_running -= 1
-                    self._future_acceptor_queue.put((job, future))
-                    self._queue.task_done()
-                    self._condition.notify()
+        def job_done_callback(future):
+            _logger.debug('Job {} finished.'.format(str(job.job_id)))
 
-            future.add_done_callback(job_done_callback)
+            with self._lock:
+                self._num_jobs_running -= 1
+
+            self._future_acceptor_queue.put((job, future))
+            self._queue.task_done()
+
+        future.add_done_callback(job_done_callback)
 
     def add_job(self, job, timeout=None):
-        with self._condition:
-            if self._num_jobs_running >= self._max_job_count:
-                raise queue.Full
+        if not self._running or self._num_jobs_running >= self._max_job_count:
+            raise queue.Full
 
         self._queue.put(job, timeout=timeout)
 
     def stop(self):
-        with self._condition:
-            _logger.debug('Job runner stopping.')
-            self._running = False
-            self._condition.notify()
+        _logger.debug('Job runner stopping.')
+        self._running = False
 
 
 class JobID(object):
@@ -230,12 +228,9 @@ class SearchEngineJob(BaseJob):
         self._urls = []
         self._result_count_deque = collections.deque(
             maxlen=self.RESULT_COUNT_DEQUE_SIZE)
-        self._driver = self.web_driver_cache.get(selenium.webdriver.Firefox,
-            self.search_engine_class)
-        search_engine_class = self.search_engine_class
-        self._search_engine = search_engine_class(self._driver,
-            self._url_pattern, self._search_keyword)
         self._rate_limiter = furlat.limit.RateLimiter()
+        self._driver = None
+        self._search_engine = None
 
     @abc.abstractproperty
     def search_engine_class(self):
@@ -246,6 +241,11 @@ class SearchEngineJob(BaseJob):
             self.search_engine_class.__name__,
             self._url_pattern.domain_name,
             self._search_keyword))
+
+        self._driver = self.web_driver_cache.get(selenium.webdriver.Firefox,
+            self.search_engine_class)
+        self._search_engine = self.search_engine_class(self._driver,
+            self._url_pattern, self._search_keyword)
 
         self._load_first_page()
 

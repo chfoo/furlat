@@ -69,10 +69,12 @@ class Project(threading.Thread):
 
             self._accept_job_future()
 
+        _logger.debug('Exit main loop')
         self._job_runner.stop()
         self._job_runner.join()
         self._accept_job_future()
         furlat.job.SearchEngineJob.web_driver_cache.clear_all()
+        _logger.debug('Project exiting')
 
     def stop(self):
         _logger.debug('Stopping job runner.')
