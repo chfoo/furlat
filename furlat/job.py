@@ -182,13 +182,56 @@ class TestJob(BaseJob):
         return 'Hello world!'
 
 
+class WebDriverCache(object):
+    MAX_CYCLE_COUNT = 100
+
+    def __init__(self):
+        super(WebDriverCache, self).__init__()
+        self._drivers = {}
+        self._driver_run_count = collections.Counter()
+        self._lock = threading.RLock()
+
+    def get(self, driver_class, instance_id):
+        key = (driver_class, instance_id)
+
+        if self._driver_run_count[key] > self.MAX_CYCLE_COUNT:
+            self.clear(driver_class, instance_id)
+
+        with self._lock:
+            if key not in self._drivers:
+                self._drivers[key] = driver_class()
+                self._driver_run_count[key] = 0
+
+            self._driver_run_count[key] += 1
+
+            return self._drivers[key]
+
+    def clear(self, driver_class, instance_id):
+        key = (driver_class, instance_id)
+
+        with self._lock:
+            if key in self._drivers:
+                self._drivers[key].quit()
+                del self._drivers[key]
+                del self._driver_run_count[key]
+
+    def clear_all(self):
+        with self._lock:
+            for driver_class, instance_id in list(self._drivers.keys()):
+                self.clear(driver_class, instance_id)
+
+
 class SearchEngineJob(BaseJob):
+    web_driver_cache = WebDriverCache()
+
     @abc.abstractproperty
     def search_engine_class(self):
         pass
 
     def run(self):
-        driver = selenium.webdriver.Firefox()
+        driver = self.web_driver_cache.get(selenium.webdriver.Firefox,
+            self.search_engine_class)
+
         try:
             search_engine_class = self.search_engine_class
             search_engine = search_engine_class(driver, self._url_pattern,
@@ -220,7 +263,8 @@ class SearchEngineJob(BaseJob):
                     break
 
         finally:
-            driver.quit()
+            self.web_driver_cache.clear(selenium.webdriver.Firefox,
+                self.search_engine_class)
 
         urls = list(sorted(frozenset(urls)))
 
