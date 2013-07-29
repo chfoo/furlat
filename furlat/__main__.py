@@ -102,7 +102,9 @@ def sort_command(args):
 
 def analyze_command(args):
     files = [open(p, 'rt') for p in args.filename]
-    counter = collections.Counter()
+    char_counter = collections.Counter()
+    length_counter = collections.Counter()
+    num_lines = 0
 
     prev_line = None
     for line in itertools.chain(*files):
@@ -110,16 +112,29 @@ def analyze_command(args):
             shortcode = line.strip().split('/', 1)[-1]
 
             for letter in shortcode:
-                counter[letter] += 1
+                char_counter[letter] += 1
 
-    character_sum = sum(counter.values())
-    print('Number of unique characters:\t', len(counter))
+            length_counter[len(shortcode)] += 1
+            num_lines += 1
+
+    print('Number of shortcodes:\t', num_lines)
+
+    length_sum = sum(length_counter.values())
+    print('Number of string lengths:\t', len(length_counter))
+
+    counter_iter = sorted(length_counter.items(), key=lambda v: v[0])
+    for key, value in counter_iter:
+        percent = '{:>7.3f}%'.format(value / length_sum * 100)
+        print(key, '\t', value, '\t', percent)
+
+    character_sum = sum(char_counter.values())
+    print('Number of unique characters:\t', len(char_counter))
     print('Number of characters used:\t', character_sum)
 
     if args.common:
-        counter_iter = counter.most_common()
+        counter_iter = char_counter.most_common()
     else:
-        counter_iter = sorted(counter.items(), key=lambda v: v[0])
+        counter_iter = sorted(char_counter.items(), key=lambda v: v[0])
 
     for key, value in counter_iter:
         percent = '{:>7.3f}%'.format(value / character_sum * 100)
