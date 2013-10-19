@@ -223,12 +223,12 @@ class SearchEngineJob(BaseJob):
     web_driver_cache = WebDriverCache()
     RESULT_COUNT_DEQUE_SIZE = 3
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, rate_limiter=None, **kwargs):
         super(SearchEngineJob, self).__init__(*args, **kwargs)
         self._urls = []
         self._result_count_deque = collections.deque(
             maxlen=self.RESULT_COUNT_DEQUE_SIZE)
-        self._rate_limiter = furlat.limit.RateLimiter()
+        self._rate_limiter = rate_limiter or furlat.limit.RateLimiter()
         self._driver = None
         self._search_engine = None
 

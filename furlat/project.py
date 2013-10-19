@@ -32,7 +32,7 @@ class Project(threading.Thread):
     }
 
     def __init__(self, domain_name, word_list, job_classes=ALL_JOBS,
-    any_short_url=False):
+    any_short_url=False, rate_per_second=None):
         threading.Thread.__init__(self)
         self.daemon = True
         self._working_directory = os.path.join(os.getcwd(),
@@ -52,6 +52,12 @@ class Project(threading.Thread):
         self._word_queue = furlat.word.WordQueue(word_list)
         self._error_limiters = {}
         self._start_time = time.time()
+
+        if rate_per_second:
+            self._rate_limiter = furlat.limit.RateLimiter(
+                average_rate=rate_per_second)
+        else:
+            self._rate_limiter = furlat.limit.RateLimiter()
 
         for job_class in self._job_classes:
             self._error_limiters[job_class] = \
@@ -132,7 +138,8 @@ class Project(threading.Thread):
             if self._error_limiters[job_class].time() < time.time() \
             and self._job_limiter.add(job_class):
                 keywords = self._get_keywords()
-                return job_class(self._url_pattern, keywords)
+                return job_class(self._url_pattern, keywords,
+                    rate_limiter=self._rate_limiter)
 
     def _get_keywords(self):
         return ' OR '.join([self._word_queue.get(), self._word_queue.get()])

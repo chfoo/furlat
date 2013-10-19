@@ -38,6 +38,9 @@ def main():
     find_arg_parser.add_argument('--any-short-url', action='store_true',
         help='Instead of scraping shortcode URLs with the given domain name, '
             'scrape anything that might be a shortened link URL.')
+    find_arg_parser.add_argument('--rate', type=float,
+        help='Number of requests per minute (per service).',
+        default=5)
 
     sort_arg_parser = sub_arg_parser.add_parser('sort',
         help='Sort the URLs by length, then value')
@@ -83,8 +86,10 @@ def find_command(args):
             job_classes.append(
                 furlat.project.Project.SOURCE_NAME_MAP[source_name])
 
+    rate_per_second = args.rate / 60.0
     project = furlat.project.Project(args.name, word_list,
-        job_classes=job_classes, any_short_url=args.any_short_url)
+        job_classes=job_classes, any_short_url=args.any_short_url,
+        rate_per_second=rate_per_second)
 
     project.start()
     project.join()
