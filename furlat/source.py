@@ -226,7 +226,8 @@ class Twitter(BaseSearchEngine):
         content_element = self.driver.find_element_by_id('timeline')
         old_page_height = content_element.size['height']
 
-        self.driver.execute_script('window.scrollByPages(10)')
+        self.driver.execute_script(
+            'window.scrollTo(0, {})'.format(old_page_height * 2 + 1000000))
 
         try:
             def height_changed(dummy):
