@@ -14,7 +14,17 @@ import furlat.filtering
 _logger = logging.getLogger(__name__)
 
 
-class URLPattern(object):
+class URLPattern(object, metaclass=abc.ABCMeta):
+    @abc.abstractproperty
+    def domain_name(self):
+        pass
+
+    @abc.abstractmethod
+    def scrape(self, text):
+        pass
+
+
+class ShortcodeURLPattern(URLPattern):
     def __init__(self, domain_name, shortcode_pattern=r'[a-zA-Z0-9]+'):
         self._domain_name = domain_name
         self._shortcode_pattern = shortcode_pattern
@@ -32,6 +42,21 @@ class URLPattern(object):
         return r'({domain}/{shortcode})'.format(
             domain=self._domain_name.replace('.', r'\.'),
             shortcode=self._shortcode_pattern)
+
+    def scrape(self, text):
+        for match in re.finditer(self.re_pattern, text, re.UNICODE):
+            if match:
+                yield match.group(1)
+
+
+class AnyURLPattern(object):
+    def __init__(self, domain_name):
+        self._domain_name = domain_name
+        self.re_pattern = r'([a-z0-9.-]*[a-z0-9-]+\.[a-z0-9]+/[a-zA-Z0-9]+)'
+
+    @property
+    def domain_name(self):
+        return self._domain_name
 
     def scrape(self, text):
         for match in re.finditer(self.re_pattern, text, re.UNICODE):

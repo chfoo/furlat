@@ -31,13 +31,19 @@ class Project(threading.Thread):
         'twitter': furlat.job.TwitterSearch,
     }
 
-    def __init__(self, domain_name, word_list, job_classes=ALL_JOBS):
+    def __init__(self, domain_name, word_list, job_classes=ALL_JOBS,
+    any_url=False):
         threading.Thread.__init__(self)
         self.daemon = True
         self._working_directory = os.path.join(os.getcwd(),
             ''.join(s for s in domain_name \
                 if s in string.ascii_letters + string.digits))
-        self._url_pattern = furlat.source.URLPattern(domain_name)
+
+        if any_url:
+            self._url_pattern = furlat.source.AnyURLPattern(domain_name)
+        else:
+            self._url_pattern = furlat.source.ShortcodeURLPattern(domain_name)
+
         self._running = True
         self._future_acceptor_queue = queue.Queue()
         self._job_runner = furlat.job.JobRunner(self._future_acceptor_queue)

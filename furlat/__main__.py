@@ -35,6 +35,9 @@ def main():
     find_arg_parser.add_argument('--source', nargs='*',
         help='Instead of using all sources, use given source name. Can be'
             'specified multiple times.')
+    find_arg_parser.add_argument('--any-url', action='store_true',
+        help='Instead of scraping the given domain name URLs, '
+            'scrape anything that might be a URL.')
 
     sort_arg_parser = sub_arg_parser.add_parser('sort',
         help='Sort the URLs by length, then value')
@@ -80,7 +83,8 @@ def find_command(args):
             job_classes.append(
                 furlat.project.Project.SOURCE_NAME_MAP[source_name])
 
-    project = furlat.project.Project(args.name, word_list, job_classes)
+    project = furlat.project.Project(args.name, word_list,
+        job_classes=job_classes, any_url=args.any_url)
 
     project.start()
     project.join()
