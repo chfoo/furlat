@@ -49,7 +49,7 @@ class ShortcodeURLPattern(URLPattern):
                 yield match.group(1)
 
 
-class AnyURLPattern(object):
+class AnyShortURLPattern(object):
     def __init__(self, domain_name):
         self._domain_name = domain_name
         self.re_pattern = r'([a-z0-9.-]*[a-z0-9-]+\.[a-z0-9]+/[a-zA-Z0-9]+)'

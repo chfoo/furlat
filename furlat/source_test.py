@@ -20,7 +20,7 @@ dogs cats https://short.url/dj3d
             found_urls
         )
 
-        url_pattern = source.AnyURLPattern('short.url')
+        url_pattern = source.AnyShortURLPattern('short.url')
         found_urls = list(url_pattern.scrape(text))
 
         self.assertSequenceEqual(

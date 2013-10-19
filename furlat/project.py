@@ -32,15 +32,15 @@ class Project(threading.Thread):
     }
 
     def __init__(self, domain_name, word_list, job_classes=ALL_JOBS,
-    any_url=False):
+    any_short_url=False):
         threading.Thread.__init__(self)
         self.daemon = True
         self._working_directory = os.path.join(os.getcwd(),
             ''.join(s for s in domain_name \
                 if s in string.ascii_letters + string.digits))
 
-        if any_url:
-            self._url_pattern = furlat.source.AnyURLPattern(domain_name)
+        if any_short_url:
+            self._url_pattern = furlat.source.AnyShortURLPattern(domain_name)
         else:
             self._url_pattern = furlat.source.ShortcodeURLPattern(domain_name)
 
