@@ -1,13 +1,14 @@
 '''Web sources like search engines and microblogs'''
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GNU GPL v3. See COPYING.txt for details
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support.wait import WebDriverWait
 import abc
-import furlat.filtering
 import logging
 import re
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.support.wait import WebDriverWait
 import urllib.parse
+
+import furlat.filtering
 
 
 _logger = logging.getLogger(__name__)
@@ -187,13 +188,36 @@ class Yahoo(BaseSearchEngine):
             lambda driver: driver.find_element_by_id('ft'))
 
 
-class BaseMicroblog(metaclass=abc.ABCMeta):
-    pass
+class Twitter(BaseSearchEngine):
+    @property
+    def query_url_template(self):
+        return 'https://twitter.com/search?q={query}&f=realtime'
 
+    @property
+    def site_search_operator(self):
+        return '"{site}"'
 
-class Twitter(BaseMicroblog):
-    pass
+    def click_next_page(self):
+        content_element = self.driver.find_element_by_id('timeline')
+        old_page_height = content_element.size['height']
 
+        self.driver.execute_script('window.scrollByPages(10)')
 
-class Identica(BaseMicroblog):
-    pass
+        try:
+            def height_changed(dummy):
+                return content_element.size['height'] > old_page_height
+
+            WebDriverWait(self.driver, 5).until(height_changed)
+        except TimeoutException:
+            _logger.debug(
+                'Timeout, Old page height {}, new page height {}'.format(
+                    old_page_height, content_element.size['height']))
+            return False
+
+        _logger.debug('Old page height {}, new page height {}'.format(
+            old_page_height, content_element.size['height']))
+        return True
+
+    def wait_for_page_load(self):
+        WebDriverWait(self.driver, 10).until(
+            lambda driver: driver.find_element_by_id('timeline'))

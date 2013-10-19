@@ -5,8 +5,6 @@ import argparse
 import furlat.project
 import furlat.word
 import logging
-import signal
-import sys
 import itertools
 import collections
 
@@ -34,6 +32,9 @@ def main():
     find_arg_parser.add_argument('--wiki-word-list',
         help='Article titles from MediaWiki dumps such as Wiktionary or '
         'Wikipedia')
+    find_arg_parser.add_argument('--source', nargs='*',
+        help='Instead of using all sources, use given source name. Can be'
+            'specified multiple times.')
 
     sort_arg_parser = sub_arg_parser.add_parser('sort',
         help='Sort the URLs by length, then value')
@@ -71,14 +72,22 @@ def find_command(args):
     else:
         word_list = furlat.word.LineWordList(args.word_list)
 
-    project = furlat.project.Project(args.name, word_list)
+    job_classes = furlat.project.Project.ALL_JOBS
+
+    if args.source:
+        job_classes = []
+        for source_name in args.source:
+            job_classes.append(
+                furlat.project.Project.SOURCE_NAME_MAP[source_name])
+
+    project = furlat.project.Project(args.name, word_list, job_classes)
 
     project.start()
     project.join()
 
 
 def sort_command(args):
-    files = [open(p, 'rt') for p in args.filename]
+    files = [open(p, 'r') for p in args.filename]
     sort_key = lambda v: (len(v), v)
 
     prev_line = None
@@ -89,7 +98,7 @@ def sort_command(args):
 
 
 def analyze_command(args):
-    files = [open(p, 'rt') for p in args.filename]
+    files = [open(p, 'r') for p in args.filename]
     char_counter = collections.Counter()
     length_counter = collections.Counter()
     num_lines = 0

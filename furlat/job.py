@@ -233,7 +233,7 @@ class SearchEngineJob(BaseJob):
         self._search_engine = None
 
     @abc.abstractproperty
-    def search_engine_class(self):
+    def search_engine_class(self, *args, **kwargs):
         pass
 
     def run(self):
@@ -322,3 +322,9 @@ class BingSearch(SearchEngineJob):
     @property
     def search_engine_class(self):
         return furlat.source.Bing
+
+
+class TwitterSearch(SearchEngineJob):
+    @property
+    def search_engine_class(self):
+        return furlat.source.Twitter

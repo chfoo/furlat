@@ -29,11 +29,17 @@ You can run the package as a script::
 
     python3 -m furlat find bit.ly --verbose
 
+To just search Twitter::
+
+    python3 -m furlat find bit.ly --verbose --source twitter
+
 Use the ``--help`` to see details about arguments.
 
 Results are currently stored into a text file. For example, if you run bit.ly, a folder called ``bitly`` will be created with the text files inside the folder. The text files contain the discovered URLs.
 
-Infinitely running commands check if a file called ``STOP`` is present. If the modified file is newly modified or created, the command will stop gracefully.
+Infinitely running commands check for a sentinel file called ``STOP``. If the modified file is newly modified or created after starting the command, the command will stop gracefully::
+
+    touch STOP
 
 
 Commands
@@ -52,7 +58,7 @@ sort
 Library
 +++++++
 
-The library is not yet stable, but you can read the ``__main__.py`` file to get a overview of how it works.
+The library is not yet stable as an API, but you can read the ``__main__.py`` file to get a overview of how it works.
 
 
 About
@@ -74,7 +80,6 @@ Links
 
 * Chat: irc://irc.efnet.org/archiveteam-bs (I'll be on #archiveteam-bs on EFnet)
 
-
 Testing
 +++++++
 
@@ -86,26 +91,32 @@ The unit tests can be run with ``nosetests``::
 Roadmap
 +++++++
 
-This software is currently in **experimental** state.
+This software is currently in **experimental-but-could-be-useful** state.
 
 
 What's Available
 ----------------
 
 * Launching a real web browser.
-* Searching through Google, Yahoo, and Bing.
+* Searching through Google, Yahoo, Bing, and Twitter.
 * Random keyword search term generation using word lists and MediaWiki page title dump files.
 
 
 What's To-Do
 ------------
 
-* Searching Twitter and Identica
-* Searching archived grabs, such as those on the Internet Archive, of microblogs
+* Searching Identica
 * Nicer result output options
 * Configurable options such as fetch rate and number of jobs run concurrently
 * Travis CI setup
 * PyPI and other websites setup
 * Inline documentation
 * Launching a fake web browser.
+
+
+See also
+--------
+
+* https://github.com/chfoo/rdai
+* https://github.com/chfoo/cloaked-octo-nemesis
 

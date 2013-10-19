@@ -18,13 +18,20 @@ _logger = logging.getLogger(__name__)
 
 
 class Project(threading.Thread):
-    DEFAULT_JOBS = (
+    ALL_JOBS = (
         furlat.job.GoogleSearch,
         furlat.job.BingSearch,
         furlat.job.YahooSearch,
+        furlat.job.TwitterSearch,
     )
+    SOURCE_NAME_MAP = {
+        'google': furlat.job.GoogleSearch,
+        'bing': furlat.job.BingSearch,
+        'yahoo': furlat.job.YahooSearch,
+        'twitter': furlat.job.TwitterSearch,
+    }
 
-    def __init__(self, domain_name, word_list, job_classes=DEFAULT_JOBS):
+    def __init__(self, domain_name, word_list, job_classes=ALL_JOBS):
         threading.Thread.__init__(self)
         self.daemon = True
         self._working_directory = os.path.join(os.getcwd(),
